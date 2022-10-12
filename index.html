@@ -33,21 +33,23 @@
 
 
 	/*** Adjust the following location (URL) to your PHP script ***/
-
 	var phpScript = 'track.php';
 
-        /*** If you've got an API Key for https://www.thunderforest.com/maps/ add it here and uncomment ***/
-
+    /*** If you've got an API Key for https://www.thunderforest.com/maps/ add it here and uncomment ***/
 	//var TFkey = 'ThunderForestKey';
 
-	var routeFile = 'data/route.gpx';
 	var track = 0;
+	var route = 0;
 	var center = 0;
 
 	// Initialize some Variables
 	var autoPan = 1;
 	var showRoute = 1;
-	var showTrack = 0;
+	var showTrack = 1;	
+
+	var posFileTime = 0;
+	var trackFileTime = 0;
+	var routeFileTime = 0;
 
 	// Maps
 	//
@@ -128,24 +130,6 @@
 		layers: [cyclemap]
 	});
 	map.addControl(layersControl);
-	
-	var route = new L.GPX(routeFile, {
-  		async: true,
-  		marker_options: {
-			'': '',
-    		startIconUrl: '',
-    		endIconUrl: '',
-    		shadowUrl: ''
-  	}
-	}).on('loaded').addTo(map);
-
-	route.on('mouseover', function () {
-        this.setText('  ►  ', {repeat: true, attributes: {fill: 'red'}});
-    });
-
-    route.on('mouseout', function () {
-        this.setText(null);
-    });
 
 	var marker = L.marker([-26.9215, -49.0591]);
 	marker.addTo(map);
@@ -219,6 +203,12 @@
 			showTrack = 1;
 			if(track != 0)
 				map.addLayer(track);
+				track.on('mouseover', function () {
+					this.setText('  ►  ', {repeat: true, offset: 6, attributes: {fill: 'blue', 'font-size': 18}});
+				});
+				track.on('mouseout', function () {
+					this.setText(null);
+				});
 		} else {
 			showTrack = 0;
 			if(track != 0)
@@ -229,76 +219,163 @@
 
 	document.getElementById ("ShowTrackCheckbox").addEventListener ("click", handleShowTrack, false);
 
-	// Fetch current location data and update marker and popup-data
 	var refreshPos = function(){
-		$.getJSON(phpScript+'?view=1', function(data) {
-			//alert(JSON.stringify(data)); // Output Data for debug
-			marker.setLatLng([data.lat,data.lon]);
-			circle.setLatLng([data.lat,data.lon]);
-			circle.setRadius(data.acc);
+		$.getJSON(phpScript+'?checkfiletime=1', function(result) {
+			//alert(JSON.stringify(result));
+			$.getJSON(phpScript+'?view=1', function(data) {
+				//alert(JSON.stringify(data)); // Output Data for debug
 
-			// Center the map on first load
-			if (center < 1) {
-				map.setView( [data.lat,data.lon], 15 )
-				center = 1;
-			}
+				marker.setLatLng([data.lat,data.lon]);
+				circle.setLatLng([data.lat,data.lon]);
+				circle.setRadius(data.acc);
 
-			// Calculate the time of last update
-			var lastupdate = data.now - data.time;
-			var minutes = Math.floor(lastupdate / 60);
-			var hours = Math.floor(minutes / 60);
-			var days = Math.floor(hours / 24);
-			var seconds = lastupdate % 60;
-			minutes = minutes - hours * 60;
-			hours = hours - days * 24;
+				// Center the map on first load
+				if (center < 1) {
+					map.setView( [data.lat,data.lon], 15 )
+					center = 1;
+				}
 
-			hours = hours < 9 ? "0"+hours : hours;
-			minutes = minutes < 9 ? "0"+minutes : minutes;
-			seconds = seconds < 9 ? "0"+seconds : seconds;
+				var lastUpdateTime = data.now - data.time;
+				var minutesSinceLastUpdate = Math.floor(lastUpdateTime / 60);
+				var hoursSinceLastUpdate = Math.floor(minutesSinceLastUpdate / 60);
+				var daysSinceLastUpdate = Math.floor(daysSinceLastUpdate / 24);
 
-			// Calculate speed (m/sec -> km/h ...)
-			var kmh = data.speed * 3.6;
+				var popUpText = 'Last Update: ';
+				if(daysSinceLastUpdate > 0)
+					popUpText += daysSinceLastUpdate + 'd ';
+				popUpText += new Date(lastUpdateTime * 1000).toISOString().substr(11, 8) + ' atrás<br/>';
+				if(data.rec_time != "") {
+					var minutes_rec_time = Math.floor(data.rec_time / 60 / 1000);
+					var hours_rec_time = Math.floor(minutes_rec_time / 60);
+					var days_rec_time = Math.floor(hours_rec_time / 24);
+					popUpText += 'Activity Time: ';
+					if(days_rec_time > 0)
+						popUpText += days_rec_time + 'd ';
+					popUpText += new Date(data.rec_time * 1).toISOString().substr(11, 8) + '<br/>';
+				}
+				if(data.est_time != "") {
+					var minutes_est_time = Math.floor(data.est_time / 60 / 1000);
+					var hours_est_time = Math.floor(minutes_est_time / 60);
+					var days_est_time = Math.floor(hours_est_time / 24);
 
-			var popUpText =
-				  days + 'd:' + hours + 'h:' + minutes + 'm:' + seconds + 's<br/>'
-				+ 'Speed: ' + kmh.toFixed(0) + 'km/h<br/>'
-				+ 'Altitude: ' + data.alt + 'm<br/>'
-				+ 'Battery: ' + data.battery + '%<br/>'
-				+ 'Signal: ' + data.gsm_signal + '%<br/>';
+					popUpText += 'Estimated Time Left: ';
+					if(days_est_time > 0)
+						popUpText += days_est_time + 'd ';
+					popUpText += new Date(data.est_time * 1).toISOString().substr(11, 8) + '<br/>';	
+				}
+				popUpText += '<br/>';
+				if(data.rec_length != "") {
+					popUpText += 'Distance: ' +(data.rec_length / 1000).toFixed(1) + 'km<br/>';
+				}
+				if(data.dist_end != "") {
+					popUpText += 'Distance Remaining: ' + (data.dist_end / 1000).toFixed(1) + 'km<br/>';
+				}
+				if(data.alt != "")
+					popUpText += 'Current Altitude: ' + data.alt + 'm<br/>';
+				popUpText += '<br/>';
+				if(data.speed != "") {
+					var kmh = data.speed * 3.6;				  
+					popUpText += 'Current Speed: ' + kmh.toFixed(0) + 'km/h<br/>';
+				}
+				if(data.avg_speed_tot != "") {
+					var avg_kmh = data.avg_speed_tot * 3.6;
+					popUpText += 'Total Avg. Speed: ' + avg_kmh.toFixed(0) + 'km/h<br/>';
+				}
+				if(data.avg_speed_mov != "") {
+					var avg_kmh = data.avg_speed_mov * 3.6;
+					popUpText += 'Moving Avg. Speed: ' + avg_kmh.toFixed(0) + 'km/h<br/>';
+				}
+				popUpText += '<br/>';
+				if(data.battery != "")
+					popUpText += 'Battery: ' + data.battery + '%<br/>';
+				if(data.gsm_signal != "")
+					popUpText += 'Signal: ' + data.gsm_signal + '%<br/>';
+				if(data.message != "")
+					popUpText = popUpText + '<br/>' + data.message;
 
-			if(data.message != "")
-				popUpText = popUpText + '<br/>' + data.message;
-
-			if (autoPan == 1) {
-				map.panTo( [data.lat,data.lon] );
-			}
-			marker.setPopupContent(popUpText);
+				if(result.filetime != posFileTime) {
+					posFileTime = result.filetime;
+					if (autoPan == 1)
+						map.panTo( [data.lat,data.lon] );
+				}
+				marker.setPopupContent(popUpText);
+			})
 		})
 	};
 
-	// Fetch track
-	var refreshGeo = function(){
-		$.getJSON(phpScript+'?track=1', function(data) {
-			if (data.error) { alert('Error: ' + data.error) }
-			if(track != 0)
-				map.removeLayer(track)
-			track = L.geoJson(data, {
-				style: {
-					color: '#ff0000',
-					weight: 5,
-					opacity: 1
-				}
-			});
-			if (showTrack == 1) {	
-				map.addLayer(track);
+	var refreshTrack = function(){
+		$.getJSON(phpScript+'?checkfiletime=2', function(result) {
+			//alert(JSON.stringify(result));
+			if(result.filetime != trackFileTime) {
+				$.getJSON(phpScript+'?track=1', function(data) {
+					//alert(JSON.stringify(data)); // Output Data for debug
+					trackFileTime = result.filetime;
+
+					if (data.error) { alert('Error: ' + data.error) }
+					if(track != 0)
+						map.removeLayer(track)
+					track = L.geoJson(data, {
+						style: {
+							color: '#ff0000',
+							weight: 5,
+							opacity: 1
+						}
+					});
+					track.on('mouseover', function () {
+						this.setText('  ►  ', {repeat: true, offset: 6, attributes: {fill: 'blue', 'font-size': 18}});
+					});
+					track.on('mouseout', function () {
+						this.setText(null);
+					});
+					if (showTrack == 1) {	
+						map.addLayer(track);
+					}
+				});
+			};
+		});
+	};
+
+	// Fetch route
+	var refreshRoute = function(){
+		$.getJSON(phpScript+'?checkfiletime=3', function(result) {
+			//alert(JSON.stringify(result));
+			if(result.filetime != routeFileTime) {
+				$.getJSON(phpScript+'?route=1', function(data) {	
+					//alert(JSON.stringify(data)); // Output Data for debug
+					routeFileTime = result.filetime;
+
+					if(route != 0)
+						map.removeLayer(route)
+
+					route = new L.GPX(data.routeFile, {
+					async: true,
+					marker_options: {
+						'': '',
+						startIconUrl: '',
+						endIconUrl: '',
+						shadowUrl: ''
+					}
+					}).on('loaded').addTo(map);
+					route.on('mouseover', function () {
+						this.setText('  ►  ', {repeat: true, offset: 6, attributes: {fill: 'red', 'font-size': 18}});
+					});
+					route.on('mouseout', function () {
+						this.setText(null);
+					});
+					if (showRoute == 1) {	
+						map.addLayer(route);
+					}
+				});
 			}
 		});
 	};
 
 	// Refresh
 	refreshPos();
-	refreshGeo();
+	refreshTrack();
+	refreshRoute();
 
 	setInterval(refreshPos,5000); // 5 sec
-	setInterval(refreshGeo,5000); // 5 sec
+	setInterval(refreshTrack,5000); // 5 sec
+	setInterval(refreshRoute,5000); // 5 sec
 </script>

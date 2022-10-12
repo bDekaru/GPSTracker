@@ -20,6 +20,8 @@ $storagefolder = './data/';
 @$reset = $_GET['reset'];
 @$clearroute = $_GET['clearroute'];
 @$route = $_GET['route'];
+@$updateroute = $_GET['updateroute'];
+@$checkfiletime = $_GET['checkfiletime'];
 
 ####### Locus Pro Parameters
 # Latitude - current GPS latitude (in degree unit, rounded on 5 decimal places)
@@ -46,6 +48,14 @@ $storagefolder = './data/';
 # Message - variable Message you're able to provide with a selfdefined var in locus
 @$message = $_GET['message'];
 
+@$rec_time = $_GET['rec_time'];
+@$rec_length = $_GET['rec_length'];
+@$avg_speed_tot = $_GET['avg_speed_tot'];
+@$avg_speed_mov = $_GET['avg_speed_mov'];
+
+@$est_time = $_GET['est_time'];
+@$dist_end = $_GET['dist_end'];
+
 # Time - current GPS time (in format defined by user. You may choose from predefined styles or define you own by this specification)
 #my $time = param('time') || '';
 # Text field - text field with own define key/value pair.
@@ -69,6 +79,7 @@ echo '{';
 
 $trackFile = $storagefolder . "track.json";
 $currentLocationFile = $storagefolder .  "currentLocation.json";
+$routeFile = $storagefolder . 'route.gpx';
 
 # autoResetTime
 if ($autoResetTime != 0 && filemtime($currentLocationFile) < (time() - $autoResetTime)) {
@@ -79,7 +90,22 @@ if ($autoResetTime != 0 && filemtime($currentLocationFile) < (time() - $autoRese
 # Write latitude, longitude and other data into .latlon file when received from Locus
 if ($lat != "" && $lon != "") {
     if ($handle = fopen($currentLocationFile, "w")) {
-        fwrite($handle, '"lat":"' . $lat . '","lon":"' . $lon . '","alt":"' . $alt . '","speed":"' . $speed . '","acc":"' . $acc . '","time":"' . $time . '","battery":"' . $battery . '","gsm_signal":"' . $gsm_signal . '","message":"' . $message . '"');
+        fwrite($handle, '"lat":"' . $lat
+         . '","lon":"' . $lon
+         . '","alt":"' . $alt
+         . '","speed":"' . $speed
+         . '","acc":"' . $acc
+         . '","time":"' . $time
+         . '","battery":"' . $battery
+         . '","gsm_signal":"' . $gsm_signal
+         . '","rec_time":"' .  $rec_time
+         . '","rec_length":"' . $rec_length
+         . '","avg_speed_tot":"' . $avg_speed_tot
+         . '","avg_speed_mov":"' . $avg_speed_mov
+         . '","est_time":"' . $est_time
+         . '","dist_end":"' . $dist_end
+         . '","message":"' . $message
+         . '"');
         fclose($handle);
     } else {
         echo "File access error: " . $currentLocationFile;
@@ -102,6 +128,19 @@ if ($lat != "" && $lon != "") {
     } else {
         echo 'File access error: view=1';
     }
+} else if ($checkfiletime == '1' || $checkfiletime == '2' || $checkfiletime == '3')
+{
+    if ($checkfiletime == '1') {
+        $contents = filemtime($currentLocationFile);
+    } elseif ($checkfiletime == '2') {
+        $contents = filemtime($currentLocationFile);
+    } elseif ($checkfiletime == '3') {
+        $contents = filemtime($routeFile);
+    }
+    if($contents)
+        echo '"filetime":"' . $contents . '"';
+    else
+       echo 'File access error: checkfiletime=' . $checkfiletime;
 } else if ($track == '1') # Output latitude, longitude as JSON for drawing track
 {
     if ($handle = fopen($trackFile, "r")) {
@@ -123,7 +162,14 @@ if ($lat != "" && $lon != "") {
         echo $contents;
         fclose($handle);
     } else {
-        echo 'File access error: geo=1';
+        echo 'File access error: track=1';
+    }
+} else if ($route == '1') # Output route gpx location
+{
+    if (file_exists($routeFile)) {
+        echo '"routeFile":"' . $routeFile . '"';
+    } else {
+        echo 'File access error: route=1';
     }
 } else if ($reset == '1') # Delete track and location files
 {
@@ -132,9 +178,8 @@ if ($lat != "" && $lon != "") {
 } else if ($clearroute == '1') # Delete route.gpx
 {
     unlink($storagefolder . 'route.gpx');
-} else if ($route == '1') # Upload route.gpx file
+} else if ($updateroute == '1') # Upload route.gpx file
 {
-    $routeFile = $storagefolder . 'route.gpx';
     if (isset($_POST["submit"])) {
         $file = $_FILES["fileToUpload"];
         $fileSize = $file["size"];
@@ -146,7 +191,7 @@ if ($lat != "" && $lon != "") {
     }
 
     if ($uploadOk != '1') {
-        echo 'File upload error: route=1';
+        echo 'File upload error: updateroute=1';
     }
 }
 
