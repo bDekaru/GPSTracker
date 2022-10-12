@@ -11,7 +11,7 @@
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 	<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
-	<script src="leaflet.textpath.js"></script>
+	<script src="Leaflet.TextPath-1.2.0/leaflet.textpath.js"></script>
 	<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
 	<style type="text/css">
 	<!--
@@ -203,12 +203,6 @@
 			showTrack = 1;
 			if(track != 0)
 				map.addLayer(track);
-				track.on('mouseover', function () {
-					this.setText('  ►  ', {repeat: true, offset: 6, attributes: {fill: 'blue', 'font-size': 18}});
-				});
-				track.on('mouseout', function () {
-					this.setText(null);
-				});
 		} else {
 			showTrack = 0;
 			if(track != 0)
@@ -370,12 +364,19 @@
 		});
 	};
 
+	var refreshOrder = function(){
+		if(track != 0)
+			track.bringToFront();
+	}
+
 	// Refresh
 	refreshPos();
-	refreshTrack();
 	refreshRoute();
+	refreshTrack();
 
-	setInterval(refreshPos,5000); // 5 sec
-	setInterval(refreshTrack,5000); // 5 sec
-	setInterval(refreshRoute,5000); // 5 sec
+	setInterval(refreshOrder, 1000); // Make sure the track is always drawn on top of the route
+
+	setInterval(refreshPos, 5000);
+	setInterval(refreshRoute, 5000);
+	setInterval(refreshTrack, 5000);
 </script>
