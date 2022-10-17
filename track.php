@@ -133,7 +133,7 @@ if ($lat != "" && $lon != "") {
     if ($checkfiletime == '1') {
         $contents = filemtime($currentLocationFile);
     } elseif ($checkfiletime == '2') {
-        $contents = filemtime($currentLocationFile);
+        $contents = filemtime($trackFile);
     } elseif ($checkfiletime == '3') {
         $contents = filemtime($routeFile);
     }

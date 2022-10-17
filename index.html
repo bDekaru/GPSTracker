@@ -134,9 +134,9 @@
 	var marker = L.marker([-26.9215, -49.0591]);
 	marker.addTo(map);
 	var popup = L.popup({autoPan: false});
-	popup.setPopupContent("<b>Offline</b>");
 	marker.bindPopup(popup).openPopup();
 	marker.pop
+	marker.setPopupContent("<b>Offline</b>");
 	var circle = L.circle([-26.9215, -49.0591], 100, {
 		color: 'blue',
 		fillColor: '#f03',
