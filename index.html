@@ -235,7 +235,7 @@
 				var lastUpdateTime = data.now - data.time;
 				var minutesSinceLastUpdate = Math.floor(lastUpdateTime / 60);
 				var hoursSinceLastUpdate = Math.floor(minutesSinceLastUpdate / 60);
-				var daysSinceLastUpdate = Math.floor(daysSinceLastUpdate / 24);
+				var daysSinceLastUpdate = Math.floor(hoursSinceLastUpdate / 24);
 
 				var popUpText = 'Last Update: ';
 				if(daysSinceLastUpdate > 0)
