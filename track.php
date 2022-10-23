@@ -89,34 +89,37 @@ if ($autoResetTime != 0 && filemtime($currentLocationFile) < (time() - $autoRese
 
 # Write latitude, longitude and other data into .latlon file when received from Locus
 if ($lat != "" && $lon != "") {
-    if ($handle = fopen($currentLocationFile, "w")) {
-        fwrite($handle, '"lat":"' . $lat
-         . '","lon":"' . $lon
-         . '","alt":"' . $alt
-         . '","speed":"' . $speed
-         . '","acc":"' . $acc
-         . '","time":"' . $time
-         . '","battery":"' . $battery
-         . '","gsm_signal":"' . $gsm_signal
-         . '","rec_time":"' .  $rec_time
-         . '","rec_length":"' . $rec_length
-         . '","avg_speed_tot":"' . $avg_speed_tot
-         . '","avg_speed_mov":"' . $avg_speed_mov
-         . '","est_time":"' . $est_time
-         . '","dist_end":"' . $dist_end
-         . '","message":"' . $message
-         . '"');
-        fclose($handle);
-    } else {
-        echo "File access error: " . $currentLocationFile;
+    if ($alt != "") { # If we also have an altitude(and other fields) this means we're the current marker location.
+        if ($handle = fopen($currentLocationFile, "w")) {
+            fwrite($handle, '"lat":"' . $lat
+            . '","lon":"' . $lon
+            . '","alt":"' . $alt
+            . '","speed":"' . $speed
+            . '","acc":"' . $acc
+            . '","time":"' . $time
+            . '","battery":"' . $battery
+            . '","gsm_signal":"' . $gsm_signal
+            . '","rec_time":"' .  $rec_time
+            . '","rec_length":"' . $rec_length
+            . '","avg_speed_tot":"' . $avg_speed_tot
+            . '","avg_speed_mov":"' . $avg_speed_mov
+            . '","est_time":"' . $est_time
+            . '","dist_end":"' . $dist_end
+            . '","message":"' . $message
+            . '"');
+            fclose($handle);
+        } else {
+            echo "File access error: " . $currentLocationFile;
+        }
     }
-
-    # Write latitude & longitude into .geojson file, collecting positions for track
-    if ($handle = fopen($trackFile, "a+")) {
-        fwrite($handle, "[ " . $lon . ", " . $lat . " ], ");
-        fclose($handle);
-    } else {
-        echo "File access error:" . $trackFile;
+    else { # Otherwise we're a track location.
+        # Write latitude & longitude into .geojson file, collecting positions for track
+        if ($handle = fopen($trackFile, "a+")) {
+            fwrite($handle, "[ " . $lon . ", " . $lat . " ], ");
+            fclose($handle);
+        } else {
+            echo "File access error:" . $trackFile;
+        }
     }
 } else if ($view == '1') # Output latitude, longitude and other data as JSON
 {
